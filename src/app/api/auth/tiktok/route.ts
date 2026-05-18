@@ -1,13 +1,13 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const clientKey = process.env.TIKTOK_CLIENT_KEY
   if (!clientKey) {
     return NextResponse.json({ error: 'TikTok no configurado' }, { status: 500 })
   }
 
-  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/tiktok/callback`
+  const redirectUri = `${new URL(request.url).origin}/api/auth/tiktok/callback`
   const codeVerifier = crypto.randomBytes(32).toString('base64url')
   const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url')
   const csrfState = crypto.randomBytes(16).toString('hex')

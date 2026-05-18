@@ -6,15 +6,16 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code')
   const state = searchParams.get('state')
   const error = searchParams.get('error')
+  const base = new URL(request.url).origin
 
   const storedState = request.cookies.get('tiktok_state')?.value
   const codeVerifier = request.cookies.get('tiktok_cv')?.value
 
   if (error || !code || state !== storedState || !codeVerifier) {
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings?error=tiktok_denied`)
+    return NextResponse.redirect(`${base}/dashboard/settings?error=tiktok_denied`)
   }
 
-  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/tiktok/callback`
+  const redirectUri = `${base}/api/auth/tiktok/callback`
 
   const tokenRes = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {
     method: 'POST',
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
   })
 
   if (!tokenRes.ok) {
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings?error=tiktok_token`)
+    return NextResponse.redirect(`${base}/dashboard/settings?error=tiktok_token`)
   }
 
   const tokenData = await tokenRes.json()
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/login`)
+  if (!user) return NextResponse.redirect(`${base}/login`)
 
   await supabase.from('connected_accounts').upsert({
     user_id: user.id,
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest) {
     scopes: scope?.split(',') ?? [],
   }, { onConflict: 'user_id,platform' })
 
-  const response = NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings?success=tiktok`)
+  const response = NextResponse.redirect(`${base}/dashboard/settings?success=tiktok`)
   response.cookies.delete('tiktok_cv')
   response.cookies.delete('tiktok_state')
   return response
